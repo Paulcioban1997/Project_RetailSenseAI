@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -29,7 +30,7 @@ class RetailSenseAI extends StatelessWidget {
             Locale('fr'),
             Locale('en'),
           ],
-          initialRoute: RouteNames.splash,
+          initialRoute: kIsWeb ? RouteNames.dashboard : RouteNames.splash,
           onGenerateRoute: AppRoutes.onGenerateRoute,
         );
       },

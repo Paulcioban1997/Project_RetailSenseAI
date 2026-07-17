@@ -1,11 +1,11 @@
 {
-    "name": "retailsense_ai",
-    "short_name": "retailsense_ai",
+    "name": "RetailSense AI",
+    "short_name": "RetailSense AI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "RetailSense AI - plateforme web de prediction pour le commerce et la supply chain.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
