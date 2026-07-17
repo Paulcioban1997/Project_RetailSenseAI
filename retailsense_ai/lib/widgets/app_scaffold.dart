@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/localization/app_i18n.dart';
@@ -46,12 +47,14 @@ class AppScaffold extends StatelessWidget {
       ),
       drawer: const AppDrawer(),
       body: body,
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.only(bottom: 48),
-        child: _PredictionBottomBar(
-          activeRoute: _routeForTitle(title),
-        ),
-      ),
+      bottomNavigationBar: kIsWeb
+          ? null
+          : SafeArea(
+              minimum: const EdgeInsets.only(bottom: 48),
+              child: _PredictionBottomBar(
+                activeRoute: _routeForTitle(title),
+              ),
+            ),
     );
   }
 
