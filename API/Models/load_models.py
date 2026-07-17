@@ -5,6 +5,8 @@ from pathlib import Path
 
 import joblib
 import torch
+os.environ.setdefault("KERAS_BACKEND", "tensorflow")
+
 from keras.models import load_model
 from transformers import AutoModelForSequenceClassification, XLMRobertaTokenizerFast
 
@@ -18,8 +20,6 @@ from API.config import (
     REGRESSION_DIR,
     TRANSFORMER_DIR,
 )
-
-os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("retailsense.models")
