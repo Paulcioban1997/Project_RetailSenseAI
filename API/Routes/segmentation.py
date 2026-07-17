@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from API.schemas import SegmentationInput
 from API.Models.load_models import MODELS
+from API.utils.inference import model_unavailable_detail
 
 import pandas as pd
 import numpy as np
@@ -35,13 +36,10 @@ def segment_customer(data: SegmentationInput):
     kmeans_model = MODELS.get("kmeans")
     scaler_rfm = MODELS.get("scaler_rfm")
     if kmeans_model is None or scaler_rfm is None:
+        missing = [k for k in ["kmeans", "scaler_rfm"] if MODELS.get(k) is None]
         raise HTTPException(
             status_code=503,
-            detail={
-                "error": "Model unavailable",
-                "missing": [k for k in ["kmeans", "scaler_rfm"] if MODELS.get(k) is None],
-                "model_errors": MODELS.get("__errors__", {}),
-            },
+            detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
         )
 
     # Normaliser les données d'entrée

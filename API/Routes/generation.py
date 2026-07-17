@@ -4,7 +4,7 @@ import numpy as np
 import time
 
 from API.Models.load_models import MODELS
-from API.utils.inference import internal_error, log_endpoint_timing, run_with_timeout
+from API.utils.inference import internal_error, log_endpoint_timing, model_unavailable_detail, run_with_timeout
 
 router = APIRouter()
 
@@ -27,13 +27,10 @@ def generate_data(count: int = Query(100, ge=1, le=1000, description="Nombre de 
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
         if scaler is None or features is None:
+            missing = [k for k in ["gan_scaler", "gan_features"] if MODELS.get(k) is None]
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": [k for k in ["gan_scaler", "gan_features"] if MODELS.get(k) is None],
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         preprocess_started = time.perf_counter()

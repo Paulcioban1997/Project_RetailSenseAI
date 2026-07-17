@@ -65,3 +65,27 @@ def internal_error(endpoint: str, exc: Exception) -> HTTPException:
             "message": str(exc),
         },
     )
+
+
+def model_unavailable_detail(missing: list[str], all_errors: dict[str, Any], max_error_len: int = 260) -> dict[str, Any]:
+    filtered_errors: dict[str, Any] = {}
+    for key in missing:
+        raw = all_errors.get(key)
+        if not isinstance(raw, dict):
+            continue
+
+        message = str(raw.get("error", ""))
+        compact = message.splitlines()[0].strip() if message else ""
+        if len(compact) > max_error_len:
+            compact = compact[: max_error_len - 3] + "..."
+
+        filtered_errors[key] = {
+            "path": raw.get("path"),
+            "error": compact or "Unavailable model artifact",
+        }
+
+    return {
+        "error": "Model unavailable",
+        "missing": missing,
+        "model_errors": filtered_errors,
+    }

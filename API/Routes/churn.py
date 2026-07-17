@@ -2,6 +2,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 from API.schemas import ReviewClassificationInput
 from API.Models.load_models import MODELS
+from API.utils.inference import model_unavailable_detail
 
 router = APIRouter()
 
@@ -14,13 +15,10 @@ def predict_churn(data: ReviewClassificationInput):
 
     model = MODELS.get("gradient_boosting")
     if model is None:
+        missing = ["gradient_boosting"]
         raise HTTPException(
             status_code=503,
-            detail={
-                "error": "Model unavailable",
-                "missing": ["gradient_boosting"],
-                "model_errors": MODELS.get("__errors__", {}),
-            },
+            detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
         )
 
     status_raw = str(data.order_status).strip().lower().replace("-", "_").replace(" ", "_")

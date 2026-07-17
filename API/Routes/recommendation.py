@@ -3,7 +3,7 @@ import time
 
 from API.Models.load_models import MODELS
 from API.schemas import RecommendationInput
-from API.utils.inference import internal_error, log_endpoint_timing
+from API.utils.inference import internal_error, log_endpoint_timing, model_unavailable_detail
 
 router = APIRouter()
 
@@ -28,11 +28,7 @@ def recommend_products(data: RecommendationInput):
         if missing:
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": missing,
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         preprocess_started = time.perf_counter()

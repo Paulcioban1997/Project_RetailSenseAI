@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from API.schemas import DemandInput, PriceInput, WeeklyDemandInput
 from API.Models.load_models import MODELS
-from API.utils.inference import internal_error, log_endpoint_timing, run_with_timeout
+from API.utils.inference import internal_error, log_endpoint_timing, model_unavailable_detail, run_with_timeout
 import time
 
 import pandas as pd
@@ -39,13 +39,10 @@ def predict_demand(data: DemandInput):
         model = MODELS.get("demand_model")
         model_load_ms = (time.perf_counter() - model_started) * 1000
         if model is None:
+            missing = ["demand_model"]
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": ["demand_model"],
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         preprocess_started = time.perf_counter()
@@ -107,13 +104,10 @@ def predict_weekly_demand(data: WeeklyDemandInput):
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
         if model is None or scaler is None:
+            missing = [k for k in ["weekly_demand_model", "weekly_demand_scaler"] if MODELS.get(k) is None]
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": [k for k in ["weekly_demand_model", "weekly_demand_scaler"] if MODELS.get(k) is None],
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         preprocess_started = time.perf_counter()
@@ -208,13 +202,10 @@ def predict_price(data: PriceInput):
         model = MODELS.get("price_model")
         model_load_ms = (time.perf_counter() - model_started) * 1000
         if model is None:
+            missing = ["price_model"]
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": ["price_model"],
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         preprocess_started = time.perf_counter()

@@ -5,7 +5,7 @@ import time
 
 from API.Models.load_models import MODELS
 from API.schemas import AutoEncoderRequest
-from API.utils.inference import internal_error, log_endpoint_timing, run_with_timeout
+from API.utils.inference import internal_error, log_endpoint_timing, model_unavailable_detail, run_with_timeout
 
 
 router = APIRouter()
@@ -29,22 +29,19 @@ def detect_anomaly(data: AutoEncoderRequest):
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
         if any(v is None for v in [autoencoder, scaler, threshold_payload, features]):
+            missing = [
+                k
+                for k in [
+                    "autoencoder",
+                    "autoencoder_scaler",
+                    "autoencoder_threshold",
+                    "autoencoder_features",
+                ]
+                if MODELS.get(k) is None
+            ]
             raise HTTPException(
                 status_code=503,
-                detail={
-                    "error": "Model unavailable",
-                    "missing": [
-                        k
-                        for k in [
-                            "autoencoder",
-                            "autoencoder_scaler",
-                            "autoencoder_threshold",
-                            "autoencoder_features",
-                        ]
-                        if MODELS.get(k) is None
-                    ],
-                    "model_errors": MODELS.get("__errors__", {}),
-                },
+                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
             )
 
         threshold = threshold_payload["threshold"] if isinstance(threshold_payload, dict) else threshold_payload
