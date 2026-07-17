@@ -1,5 +1,17 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from API.config import (
+    BASE_DIR,
+    ML_DIR,
+    DL_DIR,
+    CLASSIFICATION_DIR,
+    REGRESSION_DIR,
+    CLUSTERING_DIR,
+    AUTOENCODER_DIR,
+    GAN_DIR,
+    GNN_DIR,
+    TRANSFORMER_DIR,
+)
 from API.Routes.churn import router as churn_router
 from API.Routes.segmentation import router as segmentation_router
 from API.Routes.demand import demand_router
@@ -114,3 +126,38 @@ def health():
                         "version": "1.0.0",
                 }
         )
+
+
+@app.get("/health/models")
+def health_models():
+    checks = {
+        "gradient_boosting": (CLASSIFICATION_DIR / "gradient_boosting_optimize_grid.pkl").exists(),
+        "demand_model": (REGRESSION_DIR / "xgboost_regressor_regression_model.pkl").exists(),
+        "price_model": (REGRESSION_DIR / "xgboost_regression_price.pkl").exists(),
+        "kmeans": (CLUSTERING_DIR / "kmeans_rfm.pkl").exists(),
+        "scaler_rfm": (CLUSTERING_DIR / "scaler_rfm.pkl").exists(),
+        "weekly_model": (DL_DIR / "Models_LSTM" / "best_rnn_n_items_weekly.keras").exists(),
+        "autoencoder": (AUTOENCODER_DIR / "autoencoder_anomaly_detector.keras").exists(),
+        "generator": (GAN_DIR / "generator.keras").exists(),
+        "gnn_state": (GNN_DIR / "gcn_model.pth").exists(),
+        "recommendations": (GNN_DIR / "recommendations.json").exists(),
+        "transformer_config": (TRANSFORMER_DIR / "config.json").exists(),
+        "transformer_weights": (TRANSFORMER_DIR / "model.safetensors").exists(),
+    }
+
+    return {
+        "status": "ok",
+        "paths": {
+            "BASE_DIR": str(BASE_DIR),
+            "ML_DIR": str(ML_DIR),
+            "DL_DIR": str(DL_DIR),
+            "CLASSIFICATION_DIR": str(CLASSIFICATION_DIR),
+            "REGRESSION_DIR": str(REGRESSION_DIR),
+            "CLUSTERING_DIR": str(CLUSTERING_DIR),
+            "AUTOENCODER_DIR": str(AUTOENCODER_DIR),
+            "GAN_DIR": str(GAN_DIR),
+            "GNN_DIR": str(GNN_DIR),
+            "TRANSFORMER_DIR": str(TRANSFORMER_DIR),
+        },
+        "files": checks,
+    }
