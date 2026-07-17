@@ -10,7 +10,6 @@ router = APIRouter()
 
 
 @router.post("/generate/data", summary="Generer des donnees synthetiques")
-@router.post("/generate/synthetic", summary="Generer des donnees synthetiques")
 def generate_data(count: int = Query(100, ge=1, le=1000, description="Nombre de lignes synthetiques a generer.")):
     endpoint = "/generate/synthetic"
     started = time.perf_counter()
