@@ -12,6 +12,7 @@ from API.config import (
     GNN_DIR,
     TRANSFORMER_DIR,
 )
+from API.Models.load_models import startup_diagnostics, endpoint_model_status, MODEL_ERRORS
 from API.Routes.churn import router as churn_router
 from API.Routes.segmentation import router as segmentation_router
 from API.Routes.demand import demand_router
@@ -33,6 +34,15 @@ app.include_router(anomaly_router)     # Inclusion des routes pour la détection
 app.include_router(generation_router)  # Inclusion des routes pour la génération de clients synthétiques
 app.include_router(sentiment_router)   # Inclusion des routes pour l'analyse de sentiment
 app.include_router(recommendation_router)  # Inclusion des routes pour les recommandations
+
+STARTUP_REPORT = {}
+
+
+@app.on_event("startup")
+def startup_checks():
+    global STARTUP_REPORT
+    preload = True
+    STARTUP_REPORT = startup_diagnostics(preload_models=preload)
 
 
 
@@ -128,10 +138,23 @@ def health():
         )
 
 
+@app.get("/health/startup")
+def health_startup():
+    return {
+        "status": "ok",
+        "startup": STARTUP_REPORT,
+        "endpoint_models": endpoint_model_status(),
+        "model_errors": dict(MODEL_ERRORS),
+    }
+
+
 @app.get("/health/models")
 def health_models():
     checks = {
-        "gradient_boosting": (CLASSIFICATION_DIR / "gradient_boosting_optimize_grid.pkl").exists(),
+        "gradient_boosting": (
+            (CLASSIFICATION_DIR / "gradient_boosting_model.pkl").exists()
+            or (CLASSIFICATION_DIR / "gradient_boosting_optimize_grid.pkl").exists()
+        ),
         "demand_model": (REGRESSION_DIR / "xgboost_regressor_regression_model.pkl").exists(),
         "price_model": (REGRESSION_DIR / "xgboost_regression_price.pkl").exists(),
         "kmeans": (CLUSTERING_DIR / "kmeans_rfm.pkl").exists(),

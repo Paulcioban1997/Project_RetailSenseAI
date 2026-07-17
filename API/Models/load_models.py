@@ -1,7 +1,11 @@
 import json
 import logging
 import os
+import platform
 from pathlib import Path
+from typing import Any
+
+import importlib
 
 import joblib
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
@@ -28,6 +32,38 @@ FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
     "xlm-roberta-base",
 )
+
+ENDPOINT_MODEL_KEYS = {
+    "bad_review": ["gradient_boosting"],
+    "demand": ["demand_model"],
+    "weekly_demand": ["weekly_demand_model", "weekly_demand_scaler", "weekly_demand_metadata"],
+    "price": ["price_model"],
+    "segmentation": ["kmeans", "scaler_rfm"],
+    "anomaly": ["autoencoder", "autoencoder_scaler", "autoencoder_threshold", "autoencoder_features"],
+    "generation": ["generator", "gan_scaler", "gan_features"],
+    "recommendation": ["recommendations"],
+    "sentiment": ["tokenizer", "transformer"],
+}
+
+
+def _module_version(name: str) -> str:
+    try:
+        module = importlib.import_module(name)
+        return getattr(module, "__version__", "unknown")
+    except Exception:
+        return "unavailable"
+
+
+def runtime_versions() -> dict[str, str]:
+    return {
+        "python": platform.python_version(),
+        "numpy": _module_version("numpy"),
+        "scipy": _module_version("scipy"),
+        "scikit_learn": _module_version("sklearn"),
+        "pandas": _module_version("pandas"),
+        "xgboost": _module_version("xgboost"),
+        "joblib": _module_version("joblib"),
+    }
 
 
 def _candidate_paths(path: Path) -> list[Path]:
@@ -57,6 +93,19 @@ def _resolve_asset_path(path: Path) -> Path:
                 logger.warning("Resolved asset path fallback: %s -> %s", path, candidate)
             return candidate
     return path
+
+
+def _safe_joblib_any(key: str, paths: list[Path]):
+    last_error = None
+    for path in paths:
+        value = _safe_joblib(key, path)
+        if value is not None:
+            return value
+        last_error = MODEL_ERRORS.get(key)
+
+    if last_error is not None:
+        MODEL_ERRORS[key] = last_error
+    return None
 
 
 def _record_error(key: str, path: Path, exc: Exception) -> None:
@@ -161,54 +210,94 @@ def _safe_transformer_model(key: str, path: Path):
         return None
 
 
-LOADERS = {
-    "gradient_boosting": lambda: _safe_joblib(
-        "gradient_boosting",
+MODEL_PATHS = {
+    "gradient_boosting": [
+        CLASSIFICATION_DIR / "gradient_boosting_model_render.pkl",
+        CLASSIFICATION_DIR / "gradient_boosting_model.pkl",
         CLASSIFICATION_DIR / "gradient_boosting_optimize_grid.pkl",
-    ),
-    "quantiles": lambda: _safe_joblib("quantiles", MODELS_DIR / "rfm_quantiles.pkl"),
-    "demand_model": lambda: _safe_joblib(
-        "demand_model",
+    ],
+    "quantiles": [MODELS_DIR / "rfm_quantiles.pkl"],
+    "demand_model": [
+        REGRESSION_DIR / "xgboost_regressor_regression_model_render.pkl",
         REGRESSION_DIR / "xgboost_regressor_regression_model.pkl",
-    ),
-    "price_model": lambda: _safe_joblib(
-        "price_model",
+    ],
+    "price_model": [
+        REGRESSION_DIR / "xgboost_regression_price_render.pkl",
         REGRESSION_DIR / "xgboost_regression_price.pkl",
+    ],
+    "weekly_demand_model": [WEEKLY_DEMAND_DIR / "best_rnn_n_items_weekly.keras"],
+    "weekly_demand_scaler": [
+        WEEKLY_DEMAND_DIR / "scaler_n_items_weekly_render.joblib",
+        WEEKLY_DEMAND_DIR / "scaler_n_items_weekly.joblib",
+    ],
+    "weekly_demand_metadata": [WEEKLY_DEMAND_DIR / "best_weekly_demand_model_metadata.json"],
+    "kmeans": [
+        CLUSTERING_DIR / "kmeans_rfm_render.pkl",
+        CLUSTERING_DIR / "kmeans_rfm.pkl",
+    ],
+    "scaler_rfm": [
+        CLUSTERING_DIR / "scaler_rfm_render.pkl",
+        CLUSTERING_DIR / "scaler_rfm.pkl",
+    ],
+    "autoencoder": [AUTOENCODER_DIR / "autoencoder_anomaly_detector.keras"],
+    "autoencoder_scaler": [
+        AUTOENCODER_DIR / "scaler_render.pkl",
+        AUTOENCODER_DIR / "scaler.pkl",
+    ],
+    "autoencoder_threshold": [
+        AUTOENCODER_DIR / "threshold_render.pkl",
+        AUTOENCODER_DIR / "threshold.pkl",
+    ],
+    "autoencoder_features": [AUTOENCODER_DIR / "features.json"],
+    "generator": [GAN_DIR / "generator.keras"],
+    "gan_scaler": [
+        GAN_DIR / "scaler_render.pkl",
+        GAN_DIR / "scaler.pkl",
+    ],
+    "gan_features": [GAN_DIR / "features.json"],
+    "gnn_state": [GNN_DIR / "gcn_model.pth"],
+    "recommendations": [GNN_DIR / "recommendations.json"],
+    "tokenizer": [TRANSFORMER_DIR],
+    "transformer": [TRANSFORMER_DIR],
+}
+
+
+LOADERS = {
+    "gradient_boosting": lambda: _safe_joblib_any(
+        "gradient_boosting",
+        MODEL_PATHS["gradient_boosting"],
     ),
+    "quantiles": lambda: _safe_joblib_any("quantiles", MODEL_PATHS["quantiles"]),
+    "demand_model": lambda: _safe_joblib_any("demand_model", MODEL_PATHS["demand_model"]),
+    "price_model": lambda: _safe_joblib_any("price_model", MODEL_PATHS["price_model"]),
     "weekly_demand_model": lambda: _safe_keras(
         "weekly_demand_model",
-        WEEKLY_DEMAND_DIR / "best_rnn_n_items_weekly.keras",
+        MODEL_PATHS["weekly_demand_model"][0],
     ),
-    "weekly_demand_scaler": lambda: _safe_joblib(
-        "weekly_demand_scaler",
-        WEEKLY_DEMAND_DIR / "scaler_n_items_weekly.joblib",
-    ),
+    "weekly_demand_scaler": lambda: _safe_joblib_any("weekly_demand_scaler", MODEL_PATHS["weekly_demand_scaler"]),
     "weekly_demand_metadata": lambda: _safe_json(
         "weekly_demand_metadata",
-        WEEKLY_DEMAND_DIR / "best_weekly_demand_model_metadata.json",
+        MODEL_PATHS["weekly_demand_metadata"][0],
     ) or {},
-    "kmeans": lambda: _safe_joblib("kmeans", CLUSTERING_DIR / "kmeans_rfm.pkl"),
-    "scaler_rfm": lambda: _safe_joblib("scaler_rfm", CLUSTERING_DIR / "scaler_rfm.pkl"),
+    "kmeans": lambda: _safe_joblib_any("kmeans", MODEL_PATHS["kmeans"]),
+    "scaler_rfm": lambda: _safe_joblib_any("scaler_rfm", MODEL_PATHS["scaler_rfm"]),
     "autoencoder": lambda: _safe_keras(
         "autoencoder",
-        AUTOENCODER_DIR / "autoencoder_anomaly_detector.keras",
+        MODEL_PATHS["autoencoder"][0],
     ),
-    "autoencoder_scaler": lambda: _safe_joblib("autoencoder_scaler", AUTOENCODER_DIR / "scaler.pkl"),
-    "autoencoder_threshold": lambda: _safe_joblib(
-        "autoencoder_threshold",
-        AUTOENCODER_DIR / "threshold.pkl",
-    ),
+    "autoencoder_scaler": lambda: _safe_joblib_any("autoencoder_scaler", MODEL_PATHS["autoencoder_scaler"]),
+    "autoencoder_threshold": lambda: _safe_joblib_any("autoencoder_threshold", MODEL_PATHS["autoencoder_threshold"]),
     "autoencoder_features": lambda: _safe_json(
         "autoencoder_features",
-        AUTOENCODER_DIR / "features.json",
+        MODEL_PATHS["autoencoder_features"][0],
     ),
-    "generator": lambda: _safe_keras("generator", GAN_DIR / "generator.keras"),
-    "gan_scaler": lambda: _safe_joblib("gan_scaler", GAN_DIR / "scaler.pkl"),
-    "gan_features": lambda: _safe_json("gan_features", GAN_DIR / "features.json"),
-    "gnn_state": lambda: _safe_torch("gnn_state", GNN_DIR / "gcn_model.pth"),
-    "recommendations": lambda: _safe_json("recommendations", GNN_DIR / "recommendations.json"),
-    "tokenizer": lambda: _safe_transformer_tokenizer("tokenizer", TRANSFORMER_DIR),
-    "transformer": lambda: _safe_transformer_model("transformer", TRANSFORMER_DIR),
+    "generator": lambda: _safe_keras("generator", MODEL_PATHS["generator"][0]),
+    "gan_scaler": lambda: _safe_joblib_any("gan_scaler", MODEL_PATHS["gan_scaler"]),
+    "gan_features": lambda: _safe_json("gan_features", MODEL_PATHS["gan_features"][0]),
+    "gnn_state": lambda: _safe_torch("gnn_state", MODEL_PATHS["gnn_state"][0]),
+    "recommendations": lambda: _safe_json("recommendations", MODEL_PATHS["recommendations"][0]),
+    "tokenizer": lambda: _safe_transformer_tokenizer("tokenizer", MODEL_PATHS["tokenizer"][0]),
+    "transformer": lambda: _safe_transformer_model("transformer", MODEL_PATHS["transformer"][0]),
 }
 
 
@@ -231,3 +320,44 @@ class LazyModelRegistry:
 
 
 MODELS = LazyModelRegistry()
+
+
+def model_file_inventory() -> dict[str, list[dict[str, Any]]]:
+    inventory: dict[str, list[dict[str, Any]]] = {}
+    for key, paths in MODEL_PATHS.items():
+        entries: list[dict[str, Any]] = []
+        for path in paths:
+            resolved = _resolve_asset_path(path)
+            entries.append(
+                {
+                    "configured_path": str(path),
+                    "resolved_path": str(resolved),
+                    "exists": resolved.exists(),
+                }
+            )
+        inventory[key] = entries
+    return inventory
+
+
+def startup_diagnostics(preload_models: bool = True) -> dict[str, Any]:
+    report: dict[str, Any] = {
+        "versions": runtime_versions(),
+        "inventory": model_file_inventory(),
+        "load": {},
+        "errors": {},
+    }
+
+    if preload_models:
+        for key in LOADERS:
+            value = MODELS.get(key)
+            report["load"][key] = value is not None
+        report["errors"] = dict(MODEL_ERRORS)
+
+    return report
+
+
+def endpoint_model_status() -> dict[str, dict[str, bool]]:
+    status: dict[str, dict[str, bool]] = {}
+    for endpoint, keys in ENDPOINT_MODEL_KEYS.items():
+        status[endpoint] = {key: (MODELS.get(key) is not None) for key in keys}
+    return status
