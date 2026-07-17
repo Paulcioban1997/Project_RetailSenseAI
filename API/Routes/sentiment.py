@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 import torch
+import time
 
 from API.Models.load_models import MODELS
 from API.schemas import SentimentInput
+from API.utils.inference import internal_error, log_endpoint_timing, run_with_timeout
 
 router = APIRouter()
 
@@ -17,42 +19,68 @@ labels = {
 
 @router.post("/predict/sentiment", summary="Predire le sentiment d'un avis client")
 def predict_sentiment(data: SentimentInput):
+    endpoint = "/predict/sentiment"
+    started = time.perf_counter()
+    model_load_ms = 0.0
+    preprocess_ms = 0.0
+    predict_ms = 0.0
+    err = None
+    extra = None
 
-    tokenizer = MODELS.get("tokenizer")
-    model = MODELS.get("transformer")
-    if tokenizer is None or model is None:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "error": "Model unavailable",
-                "missing": [k for k in ["tokenizer", "transformer"] if MODELS.get(k) is None],
-                "model_errors": MODELS.get("__errors__", {}),
-            },
+    try:
+        model_started = time.perf_counter()
+        tokenizer = MODELS.get("tokenizer")
+        model = MODELS.get("transformer")
+        model_load_ms = (time.perf_counter() - model_started) * 1000
+
+        if tokenizer is None or model is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "Model unavailable",
+                    "missing": [k for k in ["tokenizer", "transformer"] if MODELS.get(k) is None],
+                    "model_errors": MODELS.get("__errors__", {}),
+                },
+            )
+
+        preprocess_started = time.perf_counter()
+        text = (data.text or "").strip()
+        if not text:
+            raise HTTPException(status_code=422, detail={"error": "Text cannot be empty"})
+
+        inputs = tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=256,
         )
 
-    inputs = tokenizer(
-        data.text,
-        return_tensors="pt",  # Retourne les tenseurs PyTorch
-        truncation=True,   # Troncature du texte si sa longueur dépasse la limite maximale du modèle
-        padding=True,  # Ajoute un padding pour que tous les textes aient la même longueur
-        max_length=256  # Longueur maximale des séquences
-    )
+        device = getattr(model, "device", torch.device("cpu"))
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        extra = f"tokenized_shape={tuple(inputs['input_ids'].shape)}; device={device}"
+        preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
 
-    with torch.no_grad():  # Désactive le calcul des gradients pour économiser de la mémoire et accélérer l'inférence
+        predict_started = time.perf_counter()
+        with torch.no_grad():
+            outputs = run_with_timeout(lambda: model(**inputs), stage="sentiment_predict")
+            probabilities = torch.softmax(outputs.logits, dim=1)
+            _, prediction = torch.max(probabilities, dim=1)
+        predict_ms = (time.perf_counter() - predict_started) * 1000
 
-        outputs = model(**inputs)
+        review_score = int(prediction.item()) + 1
+        label = labels.get(review_score, "Unknown")
 
-        probabilities = torch.softmax(outputs.logits, dim=1)  # Applique la fonction softmax pour obtenir des probabilités
-
-        _, prediction = torch.max(probabilities, dim=1)  # Récupère la classe avec la probabilité la plus élevée
-
-    review_score = int(prediction.item()) + 1  # Les classes sont indexées à partir de 0, donc on ajoute 1 pour obtenir le score réel (1 à 5)
-
-    print("LABEL =", labels[review_score])
-
-    return {
-
-        "review_score": review_score,
-        "label": labels[review_score]
-
-    }
+        return {
+            "review_score": review_score,
+            "label": label,
+        }
+    except HTTPException as exc:
+        err = str(exc.detail)
+        raise
+    except Exception as exc:
+        err = str(exc)
+        raise internal_error(endpoint, exc)
+    finally:
+        total_ms = (time.perf_counter() - started) * 1000
+        log_endpoint_timing(endpoint, model_load_ms, preprocess_ms, predict_ms, total_ms, error=err, extra=extra)
