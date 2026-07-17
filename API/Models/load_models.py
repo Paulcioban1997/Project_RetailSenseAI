@@ -40,6 +40,7 @@ FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
     "xlm-roberta-base",
 )
+DISABLE_TRANSFORMER = os.getenv("RETAILSENSE_DISABLE_TRANSFORMER", "0") == "1"
 
 ENDPOINT_MODEL_KEYS = {
     "bad_review": ["gradient_boosting"],
@@ -165,6 +166,10 @@ def _safe_torch(key: str, path: Path):
 
 
 def _safe_transformer_tokenizer(key: str, path: Path):
+    if DISABLE_TRANSFORMER:
+        logger.warning("Transformer loading disabled by RETAILSENSE_DISABLE_TRANSFORMER=1")
+        return None
+
     resolved = _resolve_asset_path(path)
     try:
         os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -197,6 +202,10 @@ def _safe_transformer_tokenizer(key: str, path: Path):
 
 
 def _safe_transformer_model(key: str, path: Path):
+    if DISABLE_TRANSFORMER:
+        logger.warning("Transformer loading disabled by RETAILSENSE_DISABLE_TRANSFORMER=1")
+        return None
+
     resolved = _resolve_asset_path(path)
     try:
         os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
