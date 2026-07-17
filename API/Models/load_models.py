@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import platform
+import time
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ MODELS_DIR = Path(__file__).resolve().parent
 WEEKLY_DEMAND_DIR = DL_DIR / "Models_LSTM"
 MODEL_ERRORS = {}
 CACHE = {}
+MODEL_LOAD_STATS = {}
 FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
     "xlm-roberta-base",
@@ -306,6 +308,9 @@ class LazyModelRegistry:
         if key == "__errors__":
             return MODEL_ERRORS
 
+        if key == "__load_stats__":
+            return MODEL_LOAD_STATS
+
         if key in CACHE:
             return CACHE[key]
 
@@ -314,7 +319,21 @@ class LazyModelRegistry:
             return default
 
         logger.info("Loading RetailSense asset on demand: %s", key)
+        started = time.perf_counter()
         value = loader()
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+
+        MODEL_LOAD_STATS[key] = {
+            "loaded": value is not None,
+            "duration_ms": elapsed_ms,
+            "error": MODEL_ERRORS.get(key),
+        }
+
+        if value is None:
+            logger.warning("Asset load failed: %s (%.2f ms)", key, elapsed_ms)
+        else:
+            logger.info("Asset loaded: %s (%.2f ms)", key, elapsed_ms)
+
         CACHE[key] = value
         return value if value is not None else default
 
@@ -352,6 +371,7 @@ def startup_diagnostics(preload_models: bool = True) -> dict[str, Any]:
             value = MODELS.get(key)
             report["load"][key] = value is not None
         report["errors"] = dict(MODEL_ERRORS)
+        report["load_stats"] = dict(MODEL_LOAD_STATS)
 
     return report
 
@@ -361,3 +381,7 @@ def endpoint_model_status() -> dict[str, dict[str, bool]]:
     for endpoint, keys in ENDPOINT_MODEL_KEYS.items():
         status[endpoint] = {key: (MODELS.get(key) is not None) for key in keys}
     return status
+
+
+def get_model_load_stats() -> dict[str, Any]:
+    return dict(MODEL_LOAD_STATS)

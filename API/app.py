@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+import logging
+import os
+import platform
 from API.config import (
     BASE_DIR,
     ML_DIR,
@@ -12,7 +15,12 @@ from API.config import (
     GNN_DIR,
     TRANSFORMER_DIR,
 )
-from API.Models.load_models import startup_diagnostics, endpoint_model_status, MODEL_ERRORS
+from API.Models.load_models import (
+    startup_diagnostics,
+    endpoint_model_status,
+    get_model_load_stats,
+    MODEL_ERRORS,
+)
 from API.Routes.churn import router as churn_router
 from API.Routes.segmentation import router as segmentation_router
 from API.Routes.demand import demand_router
@@ -26,6 +34,8 @@ app = FastAPI(
     description="API REST pour les modèles de Machine Learning et Deep Learning.",
     version="1.0.0"
 )                     # Initialisation de l'application FastAPI avec un titre, une description et une version
+
+logger = logging.getLogger("retailsense.api")
 
 app.include_router(churn_router) # Incursion des routes pour la prédiction de churn
 app.include_router(segmentation_router) # Incursion des routes pour la segmentation
@@ -41,8 +51,20 @@ STARTUP_REPORT = {}
 @app.on_event("startup")
 def startup_checks():
     global STARTUP_REPORT
-    preload = True
-    STARTUP_REPORT = startup_diagnostics(preload_models=preload)
+    logger.info("FastAPI startup sequence initiated")
+    logger.info("Python runtime: %s", platform.python_version())
+    logger.info("PORT env value: %s", os.getenv("PORT", "<not-set>"))
+    logger.info("Lazy model loading is enabled")
+    try:
+        # Do not preload heavy models on startup; keep startup fast for Render port scan.
+        STARTUP_REPORT = startup_diagnostics(preload_models=False)
+        logger.info("Startup diagnostics initialized without preloading models")
+    except Exception as exc:
+        STARTUP_REPORT = {
+            "status": "degraded",
+            "error": str(exc),
+        }
+        logger.exception("Startup diagnostics failed, continuing without blocking server")
 
 
 
@@ -144,6 +166,7 @@ def health_startup():
         "status": "ok",
         "startup": STARTUP_REPORT,
         "endpoint_models": endpoint_model_status(),
+        "model_load_stats": get_model_load_stats(),
         "model_errors": dict(MODEL_ERRORS),
     }
 
