@@ -1,17 +1,38 @@
-# retailsense_ai
+# RetailSense AI Web
 
-A new Flutter project.
+Flutter web frontend for the RetailSense AI API.
 
-## Getting Started
+## Build
 
-This project is a starting point for a Flutter application.
+```bash
+flutter build web --release
+```
 
-A few resources to get you started if this is your first Flutter project:
+The compiled site is generated in `build/web`.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Deploy
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Vercel
+
+1. Import this project in Vercel.
+2. Set the output directory to `build/web`.
+3. Deploy after running the web build.
+
+### Netlify
+
+1. Run the web build.
+2. Publish the `build/web` folder.
+
+## API
+
+The frontend points to the Render API by default in web mode:
+
+`https://project-retailsenseai.onrender.com`
+
+If needed, override it with the `API_BASE_URL` compile-time flag.
+
+## Notes
+
+- The web app opens directly on the dashboard.
+- CORS is enabled on the API backend.
+- `USE_LOCAL_INFERENCE` is disabled on web so the browser uses the deployed API.
