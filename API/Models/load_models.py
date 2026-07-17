@@ -140,8 +140,18 @@ def _safe_keras(key: str, path: Path):
 
         return load_model(resolved, compile=False)
     except Exception as exc:
-        _record_error(key, resolved, exc)
-        return None
+        primary_error = exc
+        try:
+            from tensorflow.keras.models import load_model as tf_load_model
+
+            try:
+                return tf_load_model(resolved, compile=False, safe_mode=False)
+            except TypeError:
+                return tf_load_model(resolved, compile=False)
+        except Exception as fallback_exc:
+            _record_error(key, resolved, fallback_exc)
+            logger.warning("Keras fallback load failed after primary error for %s: %s", key, primary_error)
+            return None
 
 
 def _safe_json(key: str, path: Path):

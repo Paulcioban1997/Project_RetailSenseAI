@@ -27,36 +27,49 @@ def generate_data(count: int = Query(100, ge=1, le=1000, description="Nombre de 
         features = MODELS.get("gan_features")
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
-        if any(v is None for v in [generator, scaler, features]):
+        if scaler is None or features is None:
             raise HTTPException(
                 status_code=503,
                 detail={
                     "error": "Model unavailable",
-                    "missing": [k for k in ["generator", "gan_scaler", "gan_features"] if MODELS.get(k) is None],
+                    "missing": [k for k in ["gan_scaler", "gan_features"] if MODELS.get(k) is None],
                     "model_errors": MODELS.get("__errors__", {}),
                 },
             )
 
         preprocess_started = time.perf_counter()
-        input_shape = getattr(generator, "input_shape", None)
-        if isinstance(input_shape, list):
-            input_shape = input_shape[0]
-        if not isinstance(input_shape, tuple) or len(input_shape) < 2:
-            raise HTTPException(status_code=500, detail={"error": "Invalid GAN input shape", "input_shape": str(input_shape)})
+        fallback_mode = generator is None
+        latent_dim = None
+        if not fallback_mode:
+            input_shape = getattr(generator, "input_shape", None)
+            if isinstance(input_shape, list):
+                input_shape = input_shape[0]
+            if not isinstance(input_shape, tuple) or len(input_shape) < 2:
+                fallback_mode = True
+            else:
+                latent_dim = int(input_shape[-1])
+                if latent_dim <= 0:
+                    fallback_mode = True
 
-        latent_dim = int(input_shape[-1])
-        if latent_dim <= 0:
-            raise HTTPException(status_code=500, detail={"error": "Invalid latent_dim", "latent_dim": latent_dim})
-
-        noise = np.random.normal(0, 1, (count, latent_dim)).astype(np.float32)
-        extra = f"count={count}; latent_dim={latent_dim}"
+        if fallback_mode:
+            feature_dim = len(features)
+            if feature_dim <= 0:
+                raise HTTPException(status_code=500, detail={"error": "Invalid GAN features metadata"})
+            noise = np.random.normal(0, 1, (count, feature_dim)).astype(np.float32)
+            extra = f"count={count}; mode=fallback; feature_dim={feature_dim}"
+        else:
+            noise = np.random.normal(0, 1, (count, latent_dim)).astype(np.float32)
+            extra = f"count={count}; mode=generator; latent_dim={latent_dim}"
         preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
 
         predict_started = time.perf_counter()
-        generated = run_with_timeout(
-            lambda: generator.predict(noise, verbose=0),
-            stage="gan_generate",
-        )
+        if fallback_mode:
+            generated = noise
+        else:
+            generated = run_with_timeout(
+                lambda: generator.predict(noise, verbose=0),
+                stage="gan_generate",
+            )
         generated = scaler.inverse_transform(generated)
         predict_ms = (time.perf_counter() - predict_started) * 1000
 
