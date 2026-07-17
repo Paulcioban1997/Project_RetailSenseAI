@@ -8,3 +8,9 @@ services:
     envVars:
       - key: RETAILSENSE_PROJECT_ROOT
         value: /opt/render/project/src
+      - key: RETAILSENSE_ML_DIR
+        value: /opt/render/project/src/Machine-Learning
+      - key: RETAILSENSE_DL_DIR
+        value: /opt/render/project/src/Deep-Learning
+      - key: TF_CPP_MIN_LOG_LEVEL
+        value: "2"
