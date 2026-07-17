@@ -1,0 +1,11 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retailsense-api
+    ports:
+      - "8000:8000"
+    environment:
+      RETAILSENSE_PROJECT_ROOT: /app
+    restart: unless-stopped

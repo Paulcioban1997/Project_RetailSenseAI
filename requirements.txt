@@ -1,0 +1,13 @@
+﻿fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+numpy==2.3.2
+pandas==2.3.1
+scikit-learn==1.7.1
+xgboost==3.0.3
+joblib==1.5.1
+keras==3.11.1
+torch==2.8.0
+transformers==4.55.2
+sentencepiece==0.2.1
+safetensors==0.6.2
