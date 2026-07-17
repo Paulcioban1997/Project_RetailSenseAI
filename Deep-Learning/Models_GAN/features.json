@@ -1,0 +1,14 @@
+[
+    "delivery_days",
+    "delay_days",
+    "purchase_month",
+    "purchase_dow",
+    "n_items",
+    "total_price",
+    "total_freight",
+    "total_weight",
+    "payment_value",
+    "max_installments",
+    "review_score",
+    "bad_review"
+]

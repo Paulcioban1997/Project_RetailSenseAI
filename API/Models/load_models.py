@@ -24,6 +24,10 @@ MODELS_DIR = Path(__file__).resolve().parent
 WEEKLY_DEMAND_DIR = DL_DIR / "Models_LSTM"
 MODEL_ERRORS = {}
 CACHE = {}
+FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
+    "RETAILSENSE_SENTIMENT_MODEL_ID",
+    "nlptown/bert-base-multilingual-uncased-sentiment",
+)
 
 
 def _record_error(key: str, path: Path, exc: Exception) -> None:
@@ -75,17 +79,48 @@ def _safe_transformer_tokenizer(key: str, path: Path):
     try:
         from transformers import XLMRobertaTokenizerFast
 
-        return XLMRobertaTokenizerFast.from_pretrained(path)
+        local_weights = path / "model.safetensors"
+        if local_weights.exists():
+            return XLMRobertaTokenizerFast.from_pretrained(path)
+
+        logger.warning(
+            "Local sentiment weights are missing at %s. Falling back to remote model %s for tokenizer.",
+            local_weights,
+            FALLBACK_SENTIMENT_MODEL_ID,
+        )
+        return XLMRobertaTokenizerFast.from_pretrained(FALLBACK_SENTIMENT_MODEL_ID)
     except Exception as exc:
-        _record_error(key, path, exc)
-        return None
+        try:
+            from transformers import AutoTokenizer
+
+            logger.warning(
+                "Primary tokenizer load failed for %s. Falling back to AutoTokenizer(%s).",
+                path,
+                FALLBACK_SENTIMENT_MODEL_ID,
+            )
+            return AutoTokenizer.from_pretrained(FALLBACK_SENTIMENT_MODEL_ID)
+        except Exception as fallback_exc:
+            _record_error(key, path, fallback_exc)
+            logger.warning("Tokenizer fallback failed after primary error: %s", exc)
+            return None
 
 
 def _safe_transformer_model(key: str, path: Path):
     try:
         from transformers import AutoModelForSequenceClassification
 
-        return AutoModelForSequenceClassification.from_pretrained(path)
+        local_weights = path / "model.safetensors"
+        if local_weights.exists():
+            return AutoModelForSequenceClassification.from_pretrained(path)
+
+        logger.warning(
+            "Local sentiment weights are missing at %s. Falling back to remote model %s.",
+            local_weights,
+            FALLBACK_SENTIMENT_MODEL_ID,
+        )
+        return AutoModelForSequenceClassification.from_pretrained(
+            FALLBACK_SENTIMENT_MODEL_ID
+        )
     except Exception as exc:
         _record_error(key, path, exc)
         return None

@@ -1,0 +1,61 @@
+{
+  "dataset": "../Data/processed/dataset_ml_v2.csv",
+  "target": "n_items_weekly",
+  "look_back": 14,
+  "best_model": "RNN",
+  "model_path": "C:\\Python-Projects\\Projet RetailSense AI\\Deep-Learning\\Models_LSTM\\best_rnn_n_items_weekly.keras",
+  "scaler_path": "C:\\Python-Projects\\Projet RetailSense AI\\Deep-Learning\\Models_LSTM\\scaler_n_items_weekly.joblib",
+  "xgboost_best_params": {
+    "colsample_bytree": 0.8,
+    "learning_rate": 0.1,
+    "max_depth": 7,
+    "min_child_weight": 3,
+    "n_estimators": 200,
+    "reg_alpha": 0.0,
+    "reg_lambda": 1.0,
+    "subsample": 1.0
+  },
+  "rnn_best_params": {
+    "batch_size": 16,
+    "dense_units": 16,
+    "dropout_rate": 0.3,
+    "learning_rate": 0.001,
+    "units": 32
+  },
+  "lstm_best_params": {
+    "batch_size": 16,
+    "dense_units": 16,
+    "dropout_rate": 0.3,
+    "learning_rate": 0.0005,
+    "units": 64
+  },
+  "comparison": [
+    {
+      "Model": "RNN",
+      "R2": 0.09102151320515894,
+      "RMSE": 483.9707289800299,
+      "MAE": 358.93079775855654,
+      "MAPE": 0.7007179919124242,
+      "Training_time_s": 61.51396608352661,
+      "Best_Params": "{'batch_size': 16, 'dense_units': 16, 'dropout_rate': 0.3, 'learning_rate': 0.001, 'units': 32}"
+    },
+    {
+      "Model": "XGBoost Regressor",
+      "R2": 0.04919735000370595,
+      "RMSE": 494.97981075023205,
+      "MAE": 413.52569870721726,
+      "MAPE": 0.7079647899614552,
+      "Training_time_s": 67.91337585449219,
+      "Best_Params": "{'colsample_bytree': 0.8, 'learning_rate': 0.1, 'max_depth': 7, 'min_child_weight': 3, 'n_estimators': 200, 'reg_alpha': 0.0, 'reg_lambda': 1.0, 'subsample': 1.0}"
+    },
+    {
+      "Model": "LSTM",
+      "R2": -0.20690006010759432,
+      "RMSE": 557.6708550190181,
+      "MAE": 400.6617431640625,
+      "MAPE": 0.8368044851240006,
+      "Training_time_s": 67.77378129959106,
+      "Best_Params": "{'batch_size': 16, 'dense_units': 16, 'dropout_rate': 0.3, 'learning_rate': 0.0005, 'units': 64}"
+    }
+  ]
+}
