@@ -7,11 +7,11 @@ services:
     startCommand: uvicorn API.app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: RETAILSENSE_PROJECT_ROOT
-        value: /opt/render/project/src
+        value: /app
       - key: RETAILSENSE_ML_DIR
-        value: /opt/render/project/src/Machine-Learning
+        value: /app/Machine-Learning
       - key: RETAILSENSE_DL_DIR
-        value: /opt/render/project/src/Deep-Learning
+        value: /app/Deep-Learning
       - key: RETAILSENSE_SENTIMENT_MODEL_ID
         value: xlm-roberta-base
       - key: TF_CPP_MIN_LOG_LEVEL

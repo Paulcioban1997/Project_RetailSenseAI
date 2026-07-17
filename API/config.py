@@ -5,53 +5,70 @@ from dotenv import load_dotenv
 # Charge automatiquement les variables du fichier .env en local.
 load_dotenv()
 
+
+def _resolve_existing_path(env_key: str, fallback: Path) -> Path:
+    raw = os.getenv(env_key)
+    fallback = fallback.resolve()
+    if not raw:
+        return fallback
+
+    candidate = Path(raw).resolve()
+    if candidate.exists():
+        return candidate
+
+    return fallback
+
 # Racine projet: peut etre forcee par variable d'environnement
 # Ex: RETAILSENSE_PROJECT_ROOT=C:/app
-BASE_DIR = Path(
-    os.getenv(
-        "RETAILSENSE_PROJECT_ROOT",
-        str(Path(__file__).resolve().parent.parent),
-    )
-).resolve()
+BASE_DIR = _resolve_existing_path(
+    "RETAILSENSE_PROJECT_ROOT",
+    Path(__file__).resolve().parent.parent,
+)
 
 # Dossiers principaux (surchargeables)
-ML_DIR = Path(
-    os.getenv("RETAILSENSE_ML_DIR", str(BASE_DIR / "Machine-Learning"))
-).resolve()
+ML_DIR = _resolve_existing_path(
+    "RETAILSENSE_ML_DIR",
+    BASE_DIR / "Machine-Learning",
+)
 
-DL_DIR = Path(
-    os.getenv("RETAILSENSE_DL_DIR", str(BASE_DIR / "Deep-Learning"))
-).resolve()
+DL_DIR = _resolve_existing_path(
+    "RETAILSENSE_DL_DIR",
+    BASE_DIR / "Deep-Learning",
+)
 
 # Sous-dossiers ML
-CLASSIFICATION_DIR = Path(
-    os.getenv("RETAILSENSE_CLASSIFICATION_DIR", str(ML_DIR / "Models_Classification"))
-).resolve()
+CLASSIFICATION_DIR = _resolve_existing_path(
+    "RETAILSENSE_CLASSIFICATION_DIR",
+    ML_DIR / "Models_Classification",
+)
 
-REGRESSION_DIR = Path(
-    os.getenv("RETAILSENSE_REGRESSION_DIR", str(ML_DIR / "Models_Regression"))
-).resolve()
+REGRESSION_DIR = _resolve_existing_path(
+    "RETAILSENSE_REGRESSION_DIR",
+    ML_DIR / "Models_Regression",
+)
 
-CLUSTERING_DIR = Path(
-    os.getenv("RETAILSENSE_CLUSTERING_DIR", str(ML_DIR / "Models_Clustering"))
-).resolve()
+CLUSTERING_DIR = _resolve_existing_path(
+    "RETAILSENSE_CLUSTERING_DIR",
+    ML_DIR / "Models_Clustering",
+)
 
 # Sous-dossiers DL
-AUTOENCODER_DIR = Path(
-    os.getenv("RETAILSENSE_AUTOENCODER_DIR", str(DL_DIR / "Models_AutoEncoder"))
-).resolve()
+AUTOENCODER_DIR = _resolve_existing_path(
+    "RETAILSENSE_AUTOENCODER_DIR",
+    DL_DIR / "Models_AutoEncoder",
+)
 
-GAN_DIR = Path(
-    os.getenv("RETAILSENSE_GAN_DIR", str(DL_DIR / "Models_GAN"))
-).resolve()
+GAN_DIR = _resolve_existing_path(
+    "RETAILSENSE_GAN_DIR",
+    DL_DIR / "Models_GAN",
+)
 
-GNN_DIR = Path(
-    os.getenv("RETAILSENSE_GNN_DIR", str(DL_DIR / "Models_GNN"))
-).resolve()
+GNN_DIR = _resolve_existing_path(
+    "RETAILSENSE_GNN_DIR",
+    DL_DIR / "Models_GNN",
+)
 
-TRANSFORMER_DIR = Path(
-    os.getenv(
-        "RETAILSENSE_TRANSFORMER_DIR",
-        str(DL_DIR / "Models_Transformer" / "xlm_roberta_sentiment"),
-    )
-).resolve()
+TRANSFORMER_DIR = _resolve_existing_path(
+    "RETAILSENSE_TRANSFORMER_DIR",
+    DL_DIR / "Models_Transformer" / "xlm_roberta_sentiment",
+)
