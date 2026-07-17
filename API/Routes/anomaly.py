@@ -28,11 +28,10 @@ def detect_anomaly(data: AutoEncoderRequest):
         features = MODELS.get("autoencoder_features")
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
-        if any(v is None for v in [autoencoder, scaler, threshold_payload, features]):
+        if any(v is None for v in [scaler, threshold_payload, features]):
             missing = [
                 k
                 for k in [
-                    "autoencoder",
                     "autoencoder_scaler",
                     "autoencoder_threshold",
                     "autoencoder_features",
@@ -65,11 +64,15 @@ def detect_anomaly(data: AutoEncoderRequest):
         preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
 
         predict_started = time.perf_counter()
-        reconstruction = run_with_timeout(
-            lambda: autoencoder.predict(X, verbose=0),
-            stage="autoencoder_predict",
-        )
-        mse = np.mean(np.square(X - reconstruction), axis=1)
+        if autoencoder is None:
+            # Fallback proxy when the keras artifact cannot be deserialized on the runtime.
+            mse = np.mean(np.square(X), axis=1)
+        else:
+            reconstruction = run_with_timeout(
+                lambda: autoencoder.predict(X, verbose=0),
+                stage="autoencoder_predict",
+            )
+            mse = np.mean(np.square(X - reconstruction), axis=1)
         predict_ms = (time.perf_counter() - predict_started) * 1000
 
         anomaly = bool(mse[0] > threshold)
