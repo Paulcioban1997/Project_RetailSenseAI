@@ -30,6 +30,35 @@ FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
 )
 
 
+def _candidate_paths(path: Path) -> list[Path]:
+    text = str(path)
+    candidates = [path]
+
+    if text.startswith("/opt/render/project/src"):
+        candidates.append(Path(text.replace("/opt/render/project/src", "/app", 1)))
+    if text.startswith("/app"):
+        candidates.append(Path(text.replace("/app", "/opt/render/project/src", 1)))
+
+    seen = set()
+    ordered = []
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(candidate)
+    return ordered
+
+
+def _resolve_asset_path(path: Path) -> Path:
+    for candidate in _candidate_paths(path):
+        if candidate.exists():
+            if candidate != path:
+                logger.warning("Resolved asset path fallback: %s -> %s", path, candidate)
+            return candidate
+    return path
+
+
 def _record_error(key: str, path: Path, exc: Exception) -> None:
     MODEL_ERRORS[key] = {
         "path": str(path),
@@ -39,49 +68,54 @@ def _record_error(key: str, path: Path, exc: Exception) -> None:
 
 
 def _safe_joblib(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
-        return joblib.load(path)
+        return joblib.load(resolved)
     except Exception as exc:
-        _record_error(key, path, exc)
+        _record_error(key, resolved, exc)
         return None
 
 
 def _safe_keras(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
         from keras.models import load_model
 
-        return load_model(path)
+        return load_model(resolved)
     except Exception as exc:
-        _record_error(key, path, exc)
+        _record_error(key, resolved, exc)
         return None
 
 
 def _safe_json(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(resolved, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as exc:
-        _record_error(key, path, exc)
+        _record_error(key, resolved, exc)
         return None
 
 
 def _safe_torch(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
         import torch
 
-        return torch.load(path, map_location="cpu")
+        return torch.load(resolved, map_location="cpu")
     except Exception as exc:
-        _record_error(key, path, exc)
+        _record_error(key, resolved, exc)
         return None
 
 
 def _safe_transformer_tokenizer(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
         from transformers import XLMRobertaTokenizerFast
 
-        local_weights = path / "model.safetensors"
+        local_weights = resolved / "model.safetensors"
         if local_weights.exists():
-            return XLMRobertaTokenizerFast.from_pretrained(path)
+            return XLMRobertaTokenizerFast.from_pretrained(resolved)
 
         logger.warning(
             "Local sentiment weights are missing at %s. Falling back to remote model %s for tokenizer.",
@@ -100,18 +134,19 @@ def _safe_transformer_tokenizer(key: str, path: Path):
             )
             return AutoTokenizer.from_pretrained(FALLBACK_SENTIMENT_MODEL_ID)
         except Exception as fallback_exc:
-            _record_error(key, path, fallback_exc)
+            _record_error(key, resolved, fallback_exc)
             logger.warning("Tokenizer fallback failed after primary error: %s", exc)
             return None
 
 
 def _safe_transformer_model(key: str, path: Path):
+    resolved = _resolve_asset_path(path)
     try:
         from transformers import AutoModelForSequenceClassification
 
-        local_weights = path / "model.safetensors"
+        local_weights = resolved / "model.safetensors"
         if local_weights.exists():
-            return AutoModelForSequenceClassification.from_pretrained(path)
+            return AutoModelForSequenceClassification.from_pretrained(resolved)
 
         logger.warning(
             "Local sentiment weights are missing at %s. Falling back to remote model %s.",
@@ -122,7 +157,7 @@ def _safe_transformer_model(key: str, path: Path):
             FALLBACK_SENTIMENT_MODEL_ID
         )
     except Exception as exc:
-        _record_error(key, path, exc)
+        _record_error(key, resolved, exc)
         return None
 
 
