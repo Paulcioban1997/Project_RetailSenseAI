@@ -40,7 +40,7 @@ FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
     "xlm-roberta-base",
 )
-DISABLE_TRANSFORMER = os.getenv("RETAILSENSE_DISABLE_TRANSFORMER", "0") == "1"
+DISABLE_TRANSFORMER = os.getenv("RETAILSENSE_DISABLE_TRANSFORMER", "1") == "1"
 
 ENDPOINT_MODEL_KEYS = {
     "bad_review": ["gradient_boosting"],
