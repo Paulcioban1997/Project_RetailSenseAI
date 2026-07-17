@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import importlib
+import importlib.metadata
 
 import joblib
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
@@ -55,8 +56,7 @@ ENDPOINT_MODEL_KEYS = {
 
 def _module_version(name: str) -> str:
     try:
-        module = importlib.import_module(name)
-        return getattr(module, "__version__", "unknown")
+        return importlib.metadata.version(name)
     except Exception:
         return "unavailable"
 

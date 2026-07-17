@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-import torch
 import time
 
 from API.Models.load_models import MODELS
@@ -19,6 +18,8 @@ labels = {
 
 @router.post("/predict/sentiment", summary="Predire le sentiment d'un avis client")
 def predict_sentiment(data: SentimentInput):
+    import torch
+
     endpoint = "/predict/sentiment"
     started = time.perf_counter()
     model_load_ms = 0.0
