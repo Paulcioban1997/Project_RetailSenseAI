@@ -1,5 +1,5 @@
 import pandas as pd 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from API.schemas import ReviewClassificationInput
 from API.Models.load_models import MODELS
 
@@ -12,7 +12,16 @@ def predict_churn(data: ReviewClassificationInput):
     Classe une commande selon le risque d'obtenir un `bad_review`.
     """
 
-    model = MODELS["gradient_boosting"]
+    model = MODELS.get("gradient_boosting")
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": ["gradient_boosting"],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     status_raw = str(data.order_status).strip().lower().replace("-", "_").replace(" ", "_")
     status_aliases = {

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 import pandas as pd
 import numpy as np
 
@@ -14,9 +14,18 @@ def generate_data(count: int = Query(100, ge=1, le=1000, description="Nombre de 
     # Chargement des ressources
 
 
-    generator = MODELS["generator"]
-    scaler = MODELS["gan_scaler"]
-    features = MODELS["gan_features"]
+    generator = MODELS.get("generator")
+    scaler = MODELS.get("gan_scaler")
+    features = MODELS.get("gan_features")
+    if any(v is None for v in [generator, scaler, features]):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": [k for k in ["generator", "gan_scaler", "gan_features"] if MODELS.get(k) is None],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     
     # Génération de nouvelles lignes synthétiques

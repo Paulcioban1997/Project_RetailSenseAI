@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import torch
 
 from API.Models.load_models import MODELS
@@ -18,8 +18,17 @@ labels = {
 @router.post("/predict/sentiment", summary="Predire le sentiment d'un avis client")
 def predict_sentiment(data: SentimentInput):
 
-    tokenizer = MODELS["tokenizer"]
-    model = MODELS["transformer"]
+    tokenizer = MODELS.get("tokenizer")
+    model = MODELS.get("transformer")
+    if tokenizer is None or model is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": [k for k in ["tokenizer", "transformer"] if MODELS.get(k) is None],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     inputs = tokenizer(
         data.text,

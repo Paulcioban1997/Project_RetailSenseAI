@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import pandas as pd
 import numpy as np
 
@@ -15,10 +15,28 @@ def detect_anomaly(data: AutoEncoderRequest):
     
     # Chargement des ressources
 
-    autoencoder = MODELS["autoencoder"]
-    scaler = MODELS["autoencoder_scaler"]
-    threshold_payload = MODELS["autoencoder_threshold"]
-    features = MODELS["autoencoder_features"]
+    autoencoder = MODELS.get("autoencoder")
+    scaler = MODELS.get("autoencoder_scaler")
+    threshold_payload = MODELS.get("autoencoder_threshold")
+    features = MODELS.get("autoencoder_features")
+    if any(v is None for v in [autoencoder, scaler, threshold_payload, features]):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": [
+                    k
+                    for k in [
+                        "autoencoder",
+                        "autoencoder_scaler",
+                        "autoencoder_threshold",
+                        "autoencoder_features",
+                    ]
+                    if MODELS.get(k) is None
+                ],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
     threshold = threshold_payload["threshold"] if isinstance(threshold_payload, dict) else threshold_payload
 
     

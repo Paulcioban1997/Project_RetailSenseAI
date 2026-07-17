@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from API.schemas import DemandInput, PriceInput, WeeklyDemandInput
 from API.Models.load_models import MODELS
 
@@ -33,7 +33,16 @@ def predict_demand(data: DemandInput):
     }])
 
     # Charger le meilleur pipeline de prévision de la demande
-    model = MODELS["demand_model"]
+    model = MODELS.get("demand_model")
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": ["demand_model"],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     prediction_log = model.predict(input_data)
     prediction = np.expm1(prediction_log)
@@ -49,8 +58,17 @@ def predict_weekly_demand(data: WeeklyDemandInput):
     """
     Prédit la demande hebdomadaire future à partir des dernières semaines.
     """
-    model = MODELS["weekly_demand_model"]
-    scaler = MODELS["weekly_demand_scaler"]
+    model = MODELS.get("weekly_demand_model")
+    scaler = MODELS.get("weekly_demand_scaler")
+    if model is None or scaler is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": [k for k in ["weekly_demand_model", "weekly_demand_scaler"] if MODELS.get(k) is None],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
     metadata = MODELS.get("weekly_demand_metadata", {})
 
     look_back = int(metadata.get("look_back", 14))
@@ -111,7 +129,16 @@ def predict_price(data: PriceInput):
         "product_width_cm": data.product_width_cm,
     }])
 
-    model = MODELS["price_model"]
+    model = MODELS.get("price_model")
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": ["price_model"],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     prediction_log = model.predict(input_data)
     prediction = np.expm1(prediction_log)

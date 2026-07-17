@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from API.schemas import SegmentationInput
 from API.Models.load_models import MODELS
 
@@ -32,8 +32,17 @@ def segment_customer(data: SegmentationInput):
     input_data["monetary"] = np.log1p(input_data["monetary"])
 
     # Utiliser le modèle KMeans pour prédire le segment du client
-    kmeans_model = MODELS["kmeans"]
-    scaler_rfm = MODELS["scaler_rfm"]
+    kmeans_model = MODELS.get("kmeans")
+    scaler_rfm = MODELS.get("scaler_rfm")
+    if kmeans_model is None or scaler_rfm is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "Model unavailable",
+                "missing": [k for k in ["kmeans", "scaler_rfm"] if MODELS.get(k) is None],
+                "model_errors": MODELS.get("__errors__", {}),
+            },
+        )
 
     # Normaliser les données d'entrée
     input_data_scaled = scaler_rfm.transform(input_data)
