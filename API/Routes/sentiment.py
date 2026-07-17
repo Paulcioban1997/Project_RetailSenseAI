@@ -84,3 +84,4 @@ def predict_sentiment(data: SentimentInput):
     finally:
         total_ms = (time.perf_counter() - started) * 1000
         log_endpoint_timing(endpoint, model_load_ms, preprocess_ms, predict_ms, total_ms, error=err, extra=extra)
+        MODELS.release(["tokenizer", "transformer"])

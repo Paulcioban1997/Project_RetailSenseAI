@@ -3,6 +3,8 @@ import logging
 import os
 import platform
 import time
+import gc
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,9 @@ WEEKLY_DEMAND_DIR = DL_DIR / "Models_LSTM"
 MODEL_ERRORS = {}
 CACHE = {}
 MODEL_LOAD_STATS = {}
+CACHE_LOCK = threading.RLock()
+KERAS_MODEL_KEYS = {"weekly_demand_model", "autoencoder", "generator"}
+TORCH_MODEL_KEYS = {"transformer", "tokenizer", "gnn_state"}
 FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
     "xlm-roberta-base",
@@ -132,7 +137,7 @@ def _safe_keras(key: str, path: Path):
     try:
         from keras.models import load_model
 
-        return load_model(resolved)
+        return load_model(resolved, compile=False)
     except Exception as exc:
         _record_error(key, resolved, exc)
         return None
@@ -162,6 +167,7 @@ def _safe_torch(key: str, path: Path):
 def _safe_transformer_tokenizer(key: str, path: Path):
     resolved = _resolve_asset_path(path)
     try:
+        os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
         from transformers import XLMRobertaTokenizerFast
 
         local_weights = resolved / "model.safetensors"
@@ -193,23 +199,57 @@ def _safe_transformer_tokenizer(key: str, path: Path):
 def _safe_transformer_model(key: str, path: Path):
     resolved = _resolve_asset_path(path)
     try:
+        os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+        os.environ.setdefault("OMP_NUM_THREADS", "1")
         from transformers import AutoModelForSequenceClassification
+        import torch
+
+        torch.set_num_threads(1)
 
         local_weights = resolved / "model.safetensors"
         if local_weights.exists():
-            return AutoModelForSequenceClassification.from_pretrained(resolved)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                resolved,
+                low_cpu_mem_usage=True,
+            )
+            model.eval()
+            return model
 
         logger.warning(
             "Local sentiment weights are missing at %s. Falling back to remote model %s.",
             local_weights,
             FALLBACK_SENTIMENT_MODEL_ID,
         )
-        return AutoModelForSequenceClassification.from_pretrained(
-            FALLBACK_SENTIMENT_MODEL_ID
+        model = AutoModelForSequenceClassification.from_pretrained(
+            FALLBACK_SENTIMENT_MODEL_ID,
+            low_cpu_mem_usage=True,
         )
+        model.eval()
+        return model
     except Exception as exc:
         _record_error(key, resolved, exc)
         return None
+
+
+def _release_framework_memory(released_keys: set[str]) -> None:
+    if released_keys & KERAS_MODEL_KEYS:
+        try:
+            from keras import backend as K
+
+            K.clear_session()
+        except Exception:
+            pass
+
+    if released_keys & TORCH_MODEL_KEYS:
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+    gc.collect()
 
 
 MODEL_PATHS = {
@@ -311,8 +351,9 @@ class LazyModelRegistry:
         if key == "__load_stats__":
             return MODEL_LOAD_STATS
 
-        if key in CACHE:
-            return CACHE[key]
+        with CACHE_LOCK:
+            if key in CACHE:
+                return CACHE[key]
 
         loader = LOADERS.get(key)
         if loader is None:
@@ -334,8 +375,29 @@ class LazyModelRegistry:
         else:
             logger.info("Asset loaded: %s (%.2f ms)", key, elapsed_ms)
 
-        CACHE[key] = value
+        with CACHE_LOCK:
+            CACHE[key] = value
         return value if value is not None else default
+
+    def release(self, keys: list[str] | None = None) -> dict[str, Any]:
+        with CACHE_LOCK:
+            if keys is None:
+                target_keys = list(CACHE.keys())
+            else:
+                target_keys = [k for k in keys if k in CACHE]
+
+            if not target_keys:
+                return {"released": [], "remaining": list(CACHE.keys())}
+
+            released = []
+            for key in target_keys:
+                CACHE.pop(key, None)
+                released.append(key)
+
+        _release_framework_memory(set(released))
+        logger.info("Released cached assets to reduce memory: %s", released)
+        with CACHE_LOCK:
+            return {"released": released, "remaining": list(CACHE.keys())}
 
 
 MODELS = LazyModelRegistry()
@@ -377,9 +439,23 @@ def startup_diagnostics(preload_models: bool = True) -> dict[str, Any]:
 
 
 def endpoint_model_status() -> dict[str, dict[str, bool]]:
+    def _key_ready_without_loading(key: str) -> bool:
+        with CACHE_LOCK:
+            if key in CACHE and CACHE[key] is not None:
+                return True
+
+        if key in MODEL_ERRORS:
+            return False
+
+        paths = MODEL_PATHS.get(key, [])
+        for path in paths:
+            if _resolve_asset_path(path).exists():
+                return True
+        return False
+
     status: dict[str, dict[str, bool]] = {}
     for endpoint, keys in ENDPOINT_MODEL_KEYS.items():
-        status[endpoint] = {key: (MODELS.get(key) is not None) for key in keys}
+        status[endpoint] = {key: _key_ready_without_loading(key) for key in keys}
     return status
 
 

@@ -86,3 +86,4 @@ def generate_data(count: int = Query(100, ge=1, le=1000, description="Nombre de 
     finally:
         total_ms = (time.perf_counter() - started) * 1000
         log_endpoint_timing(endpoint, model_load_ms, preprocess_ms, predict_ms, total_ms, error=err, extra=extra)
+        MODELS.release(["generator"])

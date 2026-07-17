@@ -19,13 +19,10 @@ def recommend_products(data: RecommendationInput):
 
     try:
         model_started = time.perf_counter()
-        gnn_state = MODELS.get("gnn_state")
         recommendations = MODELS.get("recommendations")
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
         missing = []
-        if gnn_state is None:
-            missing.append("gnn_state")
         if recommendations is None:
             missing.append("recommendations")
         if missing:
