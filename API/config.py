@@ -1,5 +1,9 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Charge automatiquement les variables du fichier .env en local.
+load_dotenv()
 
 # Racine projet: peut etre forcee par variable d'environnement
 # Ex: RETAILSENSE_PROJECT_ROOT=C:/app
