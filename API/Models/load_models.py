@@ -19,7 +19,7 @@ from API.config import (
     TRANSFORMER_DIR,
 )
 
-os.environ.setdefault("KERAS_BACKEND", "torch")
+os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("retailsense.models")
