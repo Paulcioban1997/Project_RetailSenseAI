@@ -26,7 +26,7 @@ MODEL_ERRORS = {}
 CACHE = {}
 FALLBACK_SENTIMENT_MODEL_ID = os.getenv(
     "RETAILSENSE_SENTIMENT_MODEL_ID",
-    "nlptown/bert-base-multilingual-uncased-sentiment",
+    "xlm-roberta-base",
 )
 
 

@@ -13,6 +13,6 @@ services:
       - key: RETAILSENSE_DL_DIR
         value: /opt/render/project/src/Deep-Learning
       - key: RETAILSENSE_SENTIMENT_MODEL_ID
-        value: nlptown/bert-base-multilingual-uncased-sentiment
+        value: xlm-roberta-base
       - key: TF_CPP_MIN_LOG_LEVEL
         value: "2"
