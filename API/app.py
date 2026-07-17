@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
 import platform
@@ -36,6 +37,14 @@ app = FastAPI(
 )                     # Initialisation de l'application FastAPI avec un titre, une description et une version
 
 logger = logging.getLogger("retailsense.api")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(churn_router) # Incursion des routes pour la prédiction de churn
 app.include_router(segmentation_router) # Incursion des routes pour la segmentation

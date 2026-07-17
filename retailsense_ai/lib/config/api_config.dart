@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
@@ -13,6 +12,7 @@ class ApiConfig {
   );
 
   static bool get useLocalInference {
+    if (kIsWeb) return false;
     return _localInferenceFromEnv.toLowerCase() != 'false';
   }
 
@@ -22,10 +22,10 @@ class ApiConfig {
     }
 
     if (kIsWeb) {
-      return 'http://127.0.0.1:8000';
+      return 'https://project-retailsenseai.onrender.com';
     }
 
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       // 10.0.2.2 fonctionne juste pour l'émulateur Android, mais pas pour un appareil physique. Pour un appareil physique, utilisez l'adresse IP de votre machine de développement.
       return 'http://10.0.0.131:8000';
     }
