@@ -16,3 +16,5 @@ services:
         value: xlm-roberta-base
       - key: TF_CPP_MIN_LOG_LEVEL
         value: "2"
+      - key: RETAILSENSE_INFERENCE_TIMEOUT_SECONDS
+        value: "45"
