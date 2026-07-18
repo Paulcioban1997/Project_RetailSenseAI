@@ -111,13 +111,13 @@ def predict_weekly_demand(data: WeeklyDemandInput):
         
         # Fallback: Use simple heuristic when model/scaler are unavailable
         if model is None or scaler is None:
-            horizon_weeks = 1 if data.horizon_days <= 7 else 2
+            horizon_weeks = 1 if int(data.horizon_days) <= 7 else 2
             # Fallback: Simple exponential smoothing using recent history average
             avg_recent = float(np.mean(history[-3:]) if history.size >= 3 else np.mean(history))
             # Apply slight growth factor (1.05x per week) to mimic typical demand growth
-            weekly_forecasts = [round(avg_recent * (1.05 ** (i+1)), 2) for i in range(horizon_weeks)]
+            weekly_forecasts = [float(round(avg_recent * (1.05 ** (i+1)), 2)) for i in range(horizon_weeks)]
             response = {
-                "horizon_days": data.horizon_days,
+                "horizon_days": int(data.horizon_days),
                 "look_back_used": int(history.size),
                 "model_used": "heuristic_fallback",
                 "predicted_week_1_n_items": weekly_forecasts[0],
@@ -177,13 +177,13 @@ def predict_weekly_demand(data: WeeklyDemandInput):
         predict_ms = (time.perf_counter() - predict_started) * 1000
 
         response = {
-            "horizon_days": data.horizon_days,
-            "look_back_used": expected_timesteps,
+            "horizon_days": int(data.horizon_days),
+            "look_back_used": int(expected_timesteps),
             "model_used": "best_rnn_n_items_weekly.keras",
-            "predicted_week_1_n_items": weekly_forecasts[0],
+            "predicted_week_1_n_items": float(weekly_forecasts[0]),
         }
         if horizon_weeks == 2:
-            response["predicted_week_2_n_items"] = weekly_forecasts[1]
+            response["predicted_week_2_n_items"] = float(weekly_forecasts[1])
 
         return response
     except HTTPException as exc:

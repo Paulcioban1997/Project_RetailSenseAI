@@ -42,7 +42,7 @@ def detect_anomaly(data: AutoEncoderRequest):
             # Fallback: MSE of raw data + simple z-score threshold
             mse = np.mean(np.square(X), axis=1)
             # Heuristic threshold: mean + 2 std of a typical dataset
-            threshold = float(np.percentile(mse, 75)) if mse.size > 1 else mse[0] * 1.5
+            threshold = float(np.percentile(mse, 75)) if mse.size > 1 else float(mse[0]) * 1.5
             predict_ms = (time.perf_counter() - predict_started) * 1000
             
             anomaly = bool(mse[0] > threshold)
@@ -53,8 +53,8 @@ def detect_anomaly(data: AutoEncoderRequest):
                 "is_anomaly": anomaly,
                 "status": status,
                 "risk_level": risk,
-                "reconstruction_error": round(float(mse[0]), 8),
-                "threshold": round(float(threshold), 8),
+                "reconstruction_error": float(round(float(mse[0]), 8)),
+                "threshold": float(round(float(threshold), 8)),
                 "model_used": "heuristic_fallback",
             }
 
