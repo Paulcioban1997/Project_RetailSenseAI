@@ -42,8 +42,6 @@ def _heuristic_sentiment_score(text: str) -> int:
 
 @router.post("/predict/sentiment", summary="Predire le sentiment d'un avis client")
 def predict_sentiment(data: SentimentInput):
-    import torch
-
     endpoint = "/predict/sentiment"
     started = time.perf_counter()
     model_load_ms = 0.0
@@ -63,6 +61,15 @@ def predict_sentiment(data: SentimentInput):
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
         if tokenizer is None or model is None:
+            score = _heuristic_sentiment_score(text)
+            return {
+                "review_score": score,
+                "label": labels.get(score, "Average"),
+            }
+
+        try:
+            import torch
+        except Exception:
             score = _heuristic_sentiment_score(text)
             return {
                 "review_score": score,
