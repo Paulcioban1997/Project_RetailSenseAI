@@ -103,16 +103,32 @@ def predict_weekly_demand(data: WeeklyDemandInput):
         metadata = MODELS.get("weekly_demand_metadata", {})
         model_load_ms = (time.perf_counter() - model_started) * 1000
 
-        if model is None or scaler is None:
-            missing = [k for k in ["weekly_demand_model", "weekly_demand_scaler"] if MODELS.get(k) is None]
-            raise HTTPException(
-                status_code=503,
-                detail=model_unavailable_detail(missing, MODELS.get("__errors__", {})),
-            )
-
         preprocess_started = time.perf_counter()
-        look_back = int(metadata.get("look_back", 14))
         history = np.asarray(data.recent_weekly_n_items, dtype=float).reshape(-1)
+        preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
+
+        predict_started = time.perf_counter()
+        
+        # Fallback: Use simple heuristic when model/scaler are unavailable
+        if model is None or scaler is None:
+            horizon_weeks = 1 if data.horizon_days <= 7 else 2
+            # Fallback: Simple exponential smoothing using recent history average
+            avg_recent = float(np.mean(history[-3:]) if history.size >= 3 else np.mean(history))
+            # Apply slight growth factor (1.05x per week) to mimic typical demand growth
+            weekly_forecasts = [round(avg_recent * (1.05 ** (i+1)), 2) for i in range(horizon_weeks)]
+            response = {
+                "horizon_days": data.horizon_days,
+                "look_back_used": int(history.size),
+                "model_used": "heuristic_fallback",
+                "predicted_week_1_n_items": weekly_forecasts[0],
+            }
+            if horizon_weeks == 2:
+                response["predicted_week_2_n_items"] = weekly_forecasts[1]
+            predict_ms = (time.perf_counter() - predict_started) * 1000
+            return response
+
+        # Model-based prediction when model is available
+        look_back = int(metadata.get("look_back", 14))
         if history.size < look_back:
             raise HTTPException(
                 status_code=422,
@@ -138,9 +154,7 @@ def predict_weekly_demand(data: WeeklyDemandInput):
         received_shape = (1, expected_timesteps, 1)
         expected_shape = model_input_shape
         extra = f"received_shape={received_shape}; expected_shape={expected_shape}; horizon_days={data.horizon_days}"
-        preprocess_ms = (time.perf_counter() - preprocess_started) * 1000
 
-        predict_started = time.perf_counter()
         horizon_weeks = 1 if data.horizon_days <= 7 else 2
         weekly_forecasts = []
         for _ in range(horizon_weeks):

@@ -331,30 +331,21 @@ LOADERS = {
     "quantiles": lambda: _safe_joblib_any("quantiles", MODEL_PATHS["quantiles"]),
     "demand_model": lambda: _safe_joblib_any("demand_model", MODEL_PATHS["demand_model"]),
     "price_model": lambda: _safe_joblib_any("price_model", MODEL_PATHS["price_model"]),
-    "weekly_demand_model": lambda: _safe_keras(
-        "weekly_demand_model",
-        MODEL_PATHS["weekly_demand_model"][0],
-    ),
-    "weekly_demand_scaler": lambda: _safe_joblib_any("weekly_demand_scaler", MODEL_PATHS["weekly_demand_scaler"]),
+    "weekly_demand_model": lambda: None,  # DISABLED: Heavy LSTM model causes OOM on Render free tier
+    "weekly_demand_scaler": lambda: None,  # DISABLED: Disabled with model
     "weekly_demand_metadata": lambda: _safe_json(
         "weekly_demand_metadata",
         MODEL_PATHS["weekly_demand_metadata"][0],
     ) or {},
     "kmeans": lambda: _safe_joblib_any("kmeans", MODEL_PATHS["kmeans"]),
     "scaler_rfm": lambda: _safe_joblib_any("scaler_rfm", MODEL_PATHS["scaler_rfm"]),
-    "autoencoder": lambda: _safe_keras(
-        "autoencoder",
-        MODEL_PATHS["autoencoder"][0],
-    ),
-    "autoencoder_scaler": lambda: _safe_joblib_any("autoencoder_scaler", MODEL_PATHS["autoencoder_scaler"]),
-    "autoencoder_threshold": lambda: _safe_joblib_any("autoencoder_threshold", MODEL_PATHS["autoencoder_threshold"]),
-    "autoencoder_features": lambda: _safe_json(
-        "autoencoder_features",
-        MODEL_PATHS["autoencoder_features"][0],
-    ),
-    "generator": lambda: _safe_keras("generator", MODEL_PATHS["generator"][0]),
-    "gan_scaler": lambda: _safe_joblib_any("gan_scaler", MODEL_PATHS["gan_scaler"]),
-    "gan_features": lambda: _safe_json("gan_features", MODEL_PATHS["gan_features"][0]),
+    "autoencoder": lambda: None,  # DISABLED: Heavy Keras model causes deserialization issues
+    "autoencoder_scaler": lambda: None,  # DISABLED: Disabled with model
+    "autoencoder_threshold": lambda: None,  # DISABLED: Disabled with model
+    "autoencoder_features": lambda: None,  # DISABLED: Disabled with model
+    "generator": lambda: None,  # DISABLED: Heavy Keras GAN model causes deserialization issues
+    "gan_scaler": lambda: None,  # DISABLED: Disabled with model
+    "gan_features": lambda: None,  # DISABLED: Disabled with model
     "gnn_state": lambda: _safe_torch("gnn_state", MODEL_PATHS["gnn_state"][0]),
     "recommendations": lambda: _safe_json("recommendations", MODEL_PATHS["recommendations"][0]),
     "tokenizer": lambda: _safe_transformer_tokenizer("tokenizer", MODEL_PATHS["tokenizer"][0]),
