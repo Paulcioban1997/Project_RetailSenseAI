@@ -207,7 +207,7 @@ class _HeroVisual extends StatelessWidget {
           const Divider(height: 24, color: Color(0xFF1A2A40)),
           _MiniMetric(label: 'Anomalies détectées', value: '2 transactions', icon: Icons.warning_amber, color: Colors.orangeAccent),
           const Divider(height: 24, color: Color(0xFF1A2A40)),
-          _MiniMetric(label: 'Prix estimé', value: '€ 129.99', icon: Icons.sell, color: Colors.purpleAccent),
+          _MiniMetric(label: 'Prix estimé', value: '$ 129.99', icon: Icons.sell, color: Colors.purpleAccent),
         ],
       ),
     );
