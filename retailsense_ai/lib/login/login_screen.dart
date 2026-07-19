@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ï»¿import 'package:flutter/material.dart';
 
 import '../app/localization/app_i18n.dart';
 import '../routes/route_names.dart';
@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Identifiants incorrects. Vérifiez votre email et mot de passe.'),
+          content: Text('Identifiants incorrects. Vï¿½rifiez votre email et mot de passe.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Connectez-vous pour accéder à la plateforme',
+                  'Connectez-vous pour acceder a la plateforme',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                 ),
@@ -118,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: () => setState(() => _showHint = !_showHint),
                   child: Text(
-                    _showHint ? 'Masquer les identifiants de démo' : 'Voir les identifiants de démo',
+                    _showHint ? 'Masquer les identifiants de dï¿½mo' : 'Voir les identifiants de dï¿½mo',
                     style: const TextStyle(color: AppColors.primary, fontSize: 13),
                   ),
                 ),
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Compte de démonstration', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text('Compte de dï¿½monstration', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 6),
                         Row(
                           children: [
