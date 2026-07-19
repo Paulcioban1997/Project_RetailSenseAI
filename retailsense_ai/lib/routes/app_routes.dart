@@ -12,6 +12,7 @@ import '../screens/recommendation/recommendation_screen.dart';
 import '../screens/segmentation/segmentation_screen.dart';
 import '../screens/sentiment/sentiment_screen.dart';
 import '../screens/splash/splash_screen.dart';
+import '../screens/landing/landing_screen.dart';
 import '../login/login_screen.dart';
 import 'route_names.dart';
 
@@ -20,6 +21,9 @@ class AppRoutes {
     switch (settings.name) {
       case RouteNames.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
+
+      case RouteNames.landing:
+        return MaterialPageRoute(builder: (_) => const LandingScreen());
 
       case RouteNames.login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());

@@ -30,7 +30,7 @@ class RetailSenseAI extends StatelessWidget {
             Locale('fr'),
             Locale('en'),
           ],
-          initialRoute: kIsWeb ? RouteNames.dashboard : RouteNames.splash,
+          initialRoute: kIsWeb ? RouteNames.landing : RouteNames.splash,
           onGenerateRoute: AppRoutes.onGenerateRoute,
         );
       },

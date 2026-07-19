@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/localization/app_i18n.dart';
 import '../login/login_screen.dart';
+import '../services/auth_service.dart';
 import '../screens/bad_review/bad_review_screen.dart';
 import '../screens/anomaly/anomaly_screen.dart';
 import '../screens/demand/demand_screen.dart';
@@ -45,6 +46,7 @@ class AppDrawer extends StatelessWidget {
 							leading: const Icon(Icons.logout),
 							title: Text(AppI18n.t(context, 'drawer_logout')),
 							onTap: () {
+								AuthService().logout();
 								Navigator.pushAndRemoveUntil(
 									context,
 									MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -71,3 +73,4 @@ class AppDrawer extends StatelessWidget {
 		);
 	}
 }
+
