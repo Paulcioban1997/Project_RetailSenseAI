@@ -327,7 +327,7 @@ class _FeaturesSection extends StatelessWidget {
       _FeatureData(
         icon: Icons.show_chart_outlined,
         title: 'Prévision hebdomadaire',
-        description: 'Prévoyez la demande sur 7 à 14 jours avec un réseau LSTM entraîné sur vos séries temporelles.',
+        description: 'Prévoyez la demande sur 7 à 14 jours avec un réseau RNN entraîné sur vos séries temporelles.',
         color: Color(0xFF00C2FF),
         route: RouteNames.weeklyDemand,
       ),
