@@ -118,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: () => setState(() => _showHint = !_showHint),
                   child: Text(
-                    _showHint ? 'Masquer les identifiants de d�mo' : 'Voir les identifiants de d�mo',
+                    _showHint ? 'Masquer les identifiants de demo' : 'Voir les identifiants de demo',
                     style: const TextStyle(color: AppColors.primary, fontSize: 13),
                   ),
                 ),
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Compte de d�monstration', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text('Compte de demonstration', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 6),
                         Row(
                           children: [
