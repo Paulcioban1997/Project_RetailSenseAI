@@ -1,4 +1,4 @@
-package com.example.retailsense_ai
+package com.pmcsolutions.retailsenseai
 
 import io.flutter.embedding.android.FlutterActivity
 
